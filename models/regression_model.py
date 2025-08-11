@@ -1,0 +1,334 @@
+"""
+Regression models for neuron signal analysis
+Implements Simple RNN, LSTM, and GRU models using PyTorch for position prediction
+"""
+
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from typing import Optional
+
+
+class SimpleRNNRegressor(nn.Module):
+    """
+    Simple RNN model for neuron signal regression
+    """
+    
+    def __init__(self, 
+                 input_size: int = 147,  # Number of neurons
+                 hidden_size: int = 64,  # 隐藏层大小
+                 num_layers: int = 2,
+                 output_size: int = 2,   # 2D position (x, y)
+                 dropout: float = 0.4):  # dropout率
+        """
+        Initialize Simple RNN regressor
+        
+        Args:
+            input_size: Number of input features (neurons)
+            hidden_size: Size of hidden state
+            num_layers: Number of RNN layers
+            output_size: Number of output dimensions (2 for x,y coordinates)
+            dropout: Dropout rate
+        """
+        super(SimpleRNNRegressor, self).__init__()
+        
+        self.input_size = input_size
+        self.hidden_size = hidden_size
+        self.num_layers = num_layers
+        self.output_size = output_size
+        
+        # RNN layers
+        self.rnn = nn.RNN(
+            input_size=input_size,
+            hidden_size=hidden_size,
+            num_layers=num_layers,
+            batch_first=True,
+            dropout=dropout if num_layers > 1 else 0
+        )
+        
+        # Dropout layer
+        self.dropout = nn.Dropout(dropout)
+        
+        # Regression head
+        self.regressor = nn.Sequential(
+            nn.Linear(hidden_size, hidden_size // 2),
+            nn.ReLU(),
+            nn.Dropout(dropout),
+            nn.Linear(hidden_size // 2, hidden_size // 4),
+            nn.ReLU(),
+            nn.Dropout(dropout // 2),
+            nn.Linear(hidden_size // 4, output_size)  # 输出2维坐标
+        )
+        
+    def forward(self, x):
+        """
+        Forward pass
+        
+        Args:
+            x: Input tensor of shape (batch_size, sequence_length, input_size)
+            
+        Returns:
+            Output tensor of shape (batch_size, output_size)
+        """
+        # x shape: (batch_size, sequence_length, input_size)
+        batch_size = x.size(0)
+        
+        # Initialize hidden state
+        h0 = torch.zeros(self.num_layers, batch_size, self.hidden_size).to(x.device)
+        
+        # RNN forward pass
+        out, _ = self.rnn(x, h0)
+        
+        # Take the last output
+        out = out[:, -1, :]  # (batch_size, hidden_size)
+        
+        # Apply dropout
+        out = self.dropout(out)
+        
+        # Regression
+        out = self.regressor(out)
+        
+        return out
+
+
+class LSTMRegressor(nn.Module):
+    """
+    LSTM model for neuron signal regression
+    """
+    
+    def __init__(self, 
+                 input_size: int = 147,  # Number of neurons
+                 hidden_size: int = 64,  # 隐藏层大小
+                 num_layers: int = 2,
+                 output_size: int = 2,   # 2D position (x, y)
+                 dropout: float = 0.4,   # dropout率
+                 bidirectional: bool = False):
+        """
+        Initialize LSTM regressor
+        
+        Args:
+            input_size: Number of input features (neurons)
+            hidden_size: Size of hidden state
+            num_layers: Number of LSTM layers
+            output_size: Number of output dimensions
+            dropout: Dropout rate
+            bidirectional: Whether to use bidirectional LSTM
+        """
+        super(LSTMRegressor, self).__init__()
+        
+        self.input_size = input_size
+        self.hidden_size = hidden_size
+        self.num_layers = num_layers
+        self.output_size = output_size
+        self.bidirectional = bidirectional
+        
+        # LSTM layers
+        self.lstm = nn.LSTM(
+            input_size=input_size,
+            hidden_size=hidden_size,
+            num_layers=num_layers,
+            batch_first=True,
+            dropout=dropout if num_layers > 1 else 0,
+            bidirectional=bidirectional
+        )
+        
+        # Dropout layer
+        self.dropout = nn.Dropout(dropout)
+        
+        # Adjust regressor input size for bidirectional LSTM
+        lstm_output_size = hidden_size * 2 if bidirectional else hidden_size
+        
+        # Regression head
+        self.regressor = nn.Sequential(
+            nn.Linear(lstm_output_size, lstm_output_size // 2),
+            nn.ReLU(),
+            nn.Dropout(dropout),
+            nn.Linear(lstm_output_size // 2, lstm_output_size // 4),
+            nn.ReLU(),
+            nn.Dropout(dropout // 2),
+            nn.Linear(lstm_output_size // 4, output_size)
+        )
+        
+    def forward(self, x):
+        """
+        Forward pass
+        
+        Args:
+            x: Input tensor of shape (batch_size, sequence_length, input_size)
+            
+        Returns:
+            Output tensor of shape (batch_size, output_size)
+        """
+        # x shape: (batch_size, sequence_length, input_size)
+        batch_size = x.size(0)
+        
+        # Initialize hidden and cell states
+        num_directions = 2 if self.bidirectional else 1
+        h0 = torch.zeros(self.num_layers * num_directions, batch_size, self.hidden_size).to(x.device)
+        c0 = torch.zeros(self.num_layers * num_directions, batch_size, self.hidden_size).to(x.device)
+        
+        # LSTM forward pass
+        out, _ = self.lstm(x, (h0, c0))
+        
+        # Take the last output
+        out = out[:, -1, :]  # (batch_size, hidden_size * num_directions)
+        
+        # Apply dropout
+        out = self.dropout(out)
+        
+        # Regression
+        out = self.regressor(out)
+        
+        return out
+
+
+class GRURegressor(nn.Module):
+    """
+    GRU model for neuron signal regression
+    """
+    
+    def __init__(self, 
+                 input_size: int = 147,  # Number of neurons
+                 hidden_size: int = 64,  # 隐藏层大小
+                 num_layers: int = 2,
+                 output_size: int = 2,   # 2D position (x, y)
+                 dropout: float = 0.4,   # dropout率
+                 bidirectional: bool = False):
+        """
+        Initialize GRU regressor
+        
+        Args:
+            input_size: Number of input features (neurons)
+            hidden_size: Size of hidden state
+            num_layers: Number of GRU layers
+            output_size: Number of output dimensions
+            dropout: Dropout rate
+            bidirectional: Whether to use bidirectional GRU
+        """
+        super(GRURegressor, self).__init__()
+        
+        self.input_size = input_size
+        self.hidden_size = hidden_size
+        self.num_layers = num_layers
+        self.output_size = output_size
+        self.bidirectional = bidirectional
+        
+        # GRU layers
+        self.gru = nn.GRU(
+            input_size=input_size,
+            hidden_size=hidden_size,
+            num_layers=num_layers,
+            batch_first=True,
+            dropout=dropout if num_layers > 1 else 0,
+            bidirectional=bidirectional
+        )
+        
+        # Dropout layer
+        self.dropout = nn.Dropout(dropout)
+        
+        # Adjust regressor input size for bidirectional GRU
+        gru_output_size = hidden_size * 2 if bidirectional else hidden_size
+        
+        # Regression head
+        self.regressor = nn.Sequential(
+            nn.Linear(gru_output_size, gru_output_size // 2),
+            nn.ReLU(),
+            nn.Dropout(dropout),
+            nn.Linear(gru_output_size // 2, gru_output_size // 4),
+            nn.ReLU(),
+            nn.Dropout(dropout // 2),
+            nn.Linear(gru_output_size // 4, output_size)
+        )
+        
+    def forward(self, x):
+        """
+        Forward pass
+        
+        Args:
+            x: Input tensor of shape (batch_size, sequence_length, input_size)
+            
+        Returns:
+            Output tensor of shape (batch_size, output_size)
+        """
+        # x shape: (batch_size, sequence_length, input_size)
+        batch_size = x.size(0)
+        
+        # Initialize hidden state
+        num_directions = 2 if self.bidirectional else 1
+        h0 = torch.zeros(self.num_layers * num_directions, batch_size, self.hidden_size).to(x.device)
+        
+        # GRU forward pass
+        out, _ = self.gru(x, h0)
+        
+        # Take the last output
+        out = out[:, -1, :]  # (batch_size, hidden_size * num_directions)
+        
+        # Apply dropout
+        out = self.dropout(out)
+        
+        # Regression
+        out = self.regressor(out)
+        
+        return out
+
+
+def get_regression_model(model_name: str, **kwargs) -> nn.Module:
+    """
+    Factory function to create regression models
+    
+    Args:
+        model_name: Name of the model ('rnn', 'lstm', 'gru')
+        **kwargs: Model parameters
+        
+    Returns:
+        Initialized regression model
+    """
+    models = {
+        'rnn': SimpleRNNRegressor,
+        'lstm': LSTMRegressor,
+        'gru': GRURegressor
+    }
+    
+    if model_name.lower() not in models:
+        raise ValueError(f"Unknown model: {model_name}. Available models: {list(models.keys())}")
+    
+    return models[model_name.lower()](**kwargs)
+
+
+def count_parameters(model: nn.Module) -> int:
+    """
+    Count trainable parameters in a model
+    
+    Args:
+        model: PyTorch model
+        
+    Returns:
+        Number of trainable parameters
+    """
+    return sum(p.numel() for p in model.parameters() if p.requires_grad)
+
+
+if __name__ == "__main__":
+    # Test model creation
+    print("Testing regression model creation...")
+    
+    # Test data
+    batch_size, seq_len, input_size = 32, 100, 147
+    x = torch.randn(batch_size, seq_len, input_size)
+    
+    # Test all models
+    models = ['rnn', 'lstm', 'gru']
+    
+    for model_name in models:
+        print(f"\n{model_name.upper()} Regressor:")
+        model = get_regression_model(model_name)
+        
+        # Forward pass
+        with torch.no_grad():
+            output = model(x)
+            
+        print(f"  Input shape: {x.shape}")
+        print(f"  Output shape: {output.shape}")
+        print(f"  Parameters: {count_parameters(model):,}")
+        
+    print("\n✅ All regression models created successfully!")

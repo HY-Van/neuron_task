@@ -6,9 +6,9 @@ Here we will introduce the task and the corresponding dataset information.
 
 ### Classification
 
-Given a input $X \in \mathbb{R}^{N \times T}$ , where $N$ represents the neurons(variates) and $T$ represents the length of the input series, the target is to predict  the grid id that the mouse stays in $ Y \in\mathbb{R}^{1}$ , which is corresponding to the last point of the input series.
+Given a input $X \in \mathbb{R}^{N \times T}$ , where $N$ represents the neurons(variates) and $T$ represents the length of the input series, the target is to predict the grid id that the mouse stays in $ Y \in\mathbb{R}^{1}$ , which is corresponding to the last point of the input series.
 
-For example, the input is $X_1 =[x_1,x_2,x_3,x_4] =[1.0,2.0,3.0,4.0] \in \mathbb{R}^{1 \times 4} $ , where $N = 1$ and $T = 4$.  The  target position is  $Y_1 = 10 \in \mathbb{R}^{1 }$ , which is corresponding to $x_4$. 
+For example, the input is $X_1 =[x_1,x_2,x_3,x_4] =[1.0,2.0,3.0,4.0] \in \mathbb{R}^{1 \times 4} $ , where $N = 1$ and $T = 4$.  The target position is  $Y_1 = 10 \in \mathbb{R}^{1 }$ , which is corresponding to $x_4$. 
 
 
 

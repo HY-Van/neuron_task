@@ -8,17 +8,15 @@ Here we will introduce the task and the corresponding dataset information.
 
 Given a input $X \in \mathbb{R}^{N \times T}$ , where $N$ represents the neurons(variates) and $T$ represents the length of the input series, the target is to predict  the grid id that the mouse stays in $ Y \in\mathbb{R}^{1}$ , which is corresponding to the last point of the input series.
 
-For example, the input is $X_1 =[x_1,x_2,x_3,x_4] =[1.0,2.0,3.0,4.0] \in \mathbb{R}^{1 \times 4} $ , where $N = 1$ and $T = 4$.  The  target position is  $Y_1 = 10 \in \mathbb{R}^{1 }$ , which is corresponding to $x_4$. 
-
-
+For example, the input is $X_1 =[x_1,x_2,x_3,x_4] =[1.0,2.0,3.0,4.0] \in \mathbb{R}^{1 \times 4} $ , where $N = 1$ and $T = 4$.  The target position is  $Y_1 = 10 \in \mathbb{R}^{1 }$ , which is corresponding to $x_4$. 
 
 ### Regression
 
 Given a input $X \in \mathbb{R}^{N \times T}$ , where $N$ represents the neurons(variates) and $T$ represents the length of the input series, the target is to predict the position of the mouse  $\mathbb{R}^{1 \times 2}$ , which is corresponding to the last point of the input series.
 
-For example, the input is $X_1 =[x_1,x_2,x_3,x_4]= [1.0,2.0,3.0,4.0] \in \mathbb{R}^{1 \times 4} $ , where $N = 1$ and $T = 4$. The  target position is  $[1.0,2.0] \in \mathbb{R}^{1 \times 2}$ , which is corresponding to $x_4$. 
+For example, the input is $X_1 =[x_1,x_2,x_3,x_4]= [1.0,2.0,3.0,4.0] \in \mathbb{R}^{1 \times 4} $ , where $N = 1$ and $T = 4$. The target position is  $[1.0,2.0] \in \mathbb{R}^{1 \times 2}$ , which is corresponding to $x_4$. 
 
-
+[Prediction length]：30（when given X_1 =[x_1,x_2,x_3,x_4]，model should predict target position corresponding from x_4 to x_33）
 
 ## Dataset
 
